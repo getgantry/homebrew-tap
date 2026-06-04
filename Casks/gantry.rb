@@ -4,7 +4,7 @@ cask "gantry" do
 
   url "https://github.com/andrewkomkov/gantry/releases/download/v#{version}/Gantry-#{version}.zip"
   name "Gantry"
-  desc "Native macOS Docker management app for local and remote (SSH) hosts"
+  desc "Docker management app for local and remote (SSH) hosts"
   homepage "https://github.com/andrewkomkov/gantry"
 
   livecheck do
@@ -13,19 +13,9 @@ cask "gantry" do
   end
 
   auto_updates true
-  depends_on macos: ">= :tahoe"
+  depends_on macos: :tahoe
 
   app "Gantry.app"
-
-  caveats <<~EOS
-    Gantry is not notarized. If macOS refuses to open it, either install with
-
-      brew install --cask --no-quarantine gantry
-
-    or clear the quarantine flag after installation:
-
-      xattr -dr com.apple.quarantine "/Applications/Gantry.app"
-  EOS
 
   zap trash: [
     "~/Library/Application Support/Gantry",
@@ -33,4 +23,11 @@ cask "gantry" do
     "~/Library/Preferences/com.andrewkomkov.Gantry.plist",
     "~/Library/Saved Application State/com.andrewkomkov.Gantry.savedState",
   ]
+
+  caveats <<~EOS
+    Gantry is not notarized. If macOS refuses to open it, clear the
+    quarantine flag after installation:
+
+      xattr -dr com.apple.quarantine "/Applications/Gantry.app"
+  EOS
 end

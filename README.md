@@ -6,12 +6,11 @@ macOS Docker management app.
 ## Install
 
 ```sh
-brew install --cask --no-quarantine andrewkomkov/tap/gantry
+brew install --cask andrewkomkov/tap/gantry
 ```
 
-`--no-quarantine` is recommended because Gantry is not notarized; without it
-macOS will refuse to open the app until the quarantine flag is cleared
-manually:
+Gantry is not notarized, so macOS will refuse to open the app until the
+quarantine flag is cleared:
 
 ```sh
 xattr -dr com.apple.quarantine /Applications/Gantry.app
