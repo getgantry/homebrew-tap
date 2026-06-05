@@ -2,10 +2,10 @@ cask "gantry" do
   version "0.4.5"
   sha256 "a8c6e0df9dab0d4cdca03b6d758aa7ffd27f976897471fc1f451ba0b8bd1ba8e"
 
-  url "https://github.com/andrewkomkov/gantry/releases/download/v#{version}/Gantry-#{version}.zip"
+  url "https://github.com/getgantry/gantry/releases/download/v#{version}/Gantry-#{version}.zip"
   name "Gantry"
   desc "Docker management app for local and remote (SSH) hosts"
-  homepage "https://github.com/andrewkomkov/gantry"
+  homepage "https://github.com/getgantry/gantry"
 
   livecheck do
     url :url
