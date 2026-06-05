@@ -1,6 +1,6 @@
 cask "gantry" do
-  version "0.4.3"
-  sha256 "2b21cd6576f4a259d0c693374cacac3402fa603d1a274dace0359fafb253c69b"
+  version "0.4.4"
+  sha256 "1a9bf93a716e4355279f3d5ae21d8f106bafc255738d9e614029617443145cbf"
 
   url "https://github.com/andrewkomkov/gantry/releases/download/v#{version}/Gantry-#{version}.zip"
   name "Gantry"
