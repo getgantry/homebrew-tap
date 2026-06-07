@@ -1,10 +1,10 @@
 cask "gantry" do
-  version "0.6.0"
-  sha256 "ee1cd9c04ad820cb3356ab086e72faf3e5b5bba2bbdcafa29dc4f26dd91b328e"
+  version "0.7.0"
+  sha256 "48b17ac6191dba2455068ee3c57a58d0a32b12b3263d51b3563a80c86fad560c"
 
   url "https://github.com/getgantry/gantry/releases/download/v#{version}/Gantry-#{version}.zip"
   name "Gantry"
-  desc "Docker management app for local and remote (SSH) hosts"
+  desc "Docker and apple/container management app for local and remote (SSH) hosts"
   homepage "https://github.com/getgantry/gantry"
 
   livecheck do
