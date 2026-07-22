@@ -1,0 +1,113 @@
+name: Bump cask
+
+# Keeps Casks/gantry.rb in step with the latest getgantry/gantry release.
+#
+# Homebrew is the real update channel for Gantry: the app is ad-hoc signed, so
+# Sparkle's in-app installer is refused by Gatekeeper and users update with
+# `brew upgrade --cask gantry`. A release that never reaches this cask reaches
+# nobody — which is how the cask ended up three versions behind.
+#
+# This runs from inside the tap, so the repository's own GITHUB_TOKEN can push
+# and there is no cross-repository token to create, store or rotate. The
+# release workflow over in getgantry/gantry also pushes a bump directly when a
+# HOMEBREW_TAP_TOKEN secret is present; that one is instant, this one is the
+# safety net that keeps working when the token is absent or expired. Both are
+# idempotent, so it does not matter which arrives first.
+
+on:
+  schedule:
+    # Every six hours. GitHub runs cron on a best-effort basis and can delay it
+    # under load, so treat this as "within a few hours of a release", not as a
+    # deadline.
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to pin, e.g. 0.22.0 (default: the latest release)'
+        required: false
+
+concurrency:
+  group: bump-cask
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  bump:
+    name: Sync with the latest release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Bump version and sha256
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INPUT_VERSION: ${{ github.event.inputs.version }}
+          UPSTREAM: getgantry/gantry
+          CASK: Casks/gantry.rb
+        run: |
+          set -euo pipefail
+
+          if [ -n "${INPUT_VERSION}" ]; then
+            VERSION="${INPUT_VERSION#v}"
+          else
+            VERSION="$(gh release view --repo "$UPSTREAM" --json tagName --jq '.tagName')"
+            VERSION="${VERSION#v}"
+          fi
+          CURRENT="$(sed -nE 's/^  version "(.*)"$/\1/p' "$CASK")"
+          echo "cask=$CURRENT latest=$VERSION"
+
+          if [ "$CURRENT" = "$VERSION" ]; then
+            echo "already up to date"
+            exit 0
+          fi
+
+          # The GitHub release is published before the build finishes uploading
+          # the zip, so an empty-handed release is normal for a few minutes —
+          # leave it for the next run rather than failing or, worse, pinning a
+          # version whose asset does not exist.
+          ZIP="Gantry-${VERSION}.zip"
+          if ! gh release view "v${VERSION}" --repo "$UPSTREAM" --json assets \
+               --jq '.assets[].name' | grep -qx "$ZIP"; then
+            echo "::notice::v${VERSION} has no ${ZIP} yet — will retry on the next run"
+            exit 0
+          fi
+
+          gh release download "v${VERSION}" --repo "$UPSTREAM" --pattern "$ZIP" --dir "$RUNNER_TEMP"
+          SHA="$(sha256sum "${RUNNER_TEMP}/${ZIP}" | cut -d' ' -f1)"
+          echo "sha256=$SHA"
+
+          sed -i -E \
+            -e "s/^  version \".*\"$/  version \"${VERSION}\"/" \
+            -e "s/^  sha256 \".*\"$/  sha256 \"${SHA}\"/" \
+            "$CASK"
+
+          # Never push a cask that only half-applied.
+          grep -q "version \"${VERSION}\"" "$CASK" \
+            && grep -q "sha256 \"${SHA}\"" "$CASK" \
+            || { echo "::error::cask rewrite did not apply"; exit 1; }
+
+          # Catches a malformed rewrite before users hit it, if ruby is present.
+          if command -v ruby >/dev/null; then
+            ruby -c "$CASK" >/dev/null
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$CASK"
+          git commit -m "gantry ${VERSION}"
+
+          # main can move under us between checkout and push.
+          for attempt in 1 2 3; do
+            if git push origin HEAD:main; then
+              echo "bumped ${CURRENT} -> ${VERSION}"
+              exit 0
+            fi
+            git pull --rebase origin main || git rebase --abort || true
+            echo "push attempt $attempt failed; retrying"
+            sleep 5
+          done
+          echo "::error::could not push the bump"
+          exit 1
